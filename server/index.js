@@ -635,6 +635,202 @@ ${aiText}
   }
 });
 
+// Route /transmit (sans préfixe /api) pour compatibilité frontend
+app.post("/api/transmit", async (req, res) => {
+  try {
+    const payload = req.body;
+    
+    // Validation basique
+    if (!payload?.profile?.email || !Array.isArray(payload?.answers) || payload.answers.length < 28) {
+      return res.status(400).json({ error: 'Données incomplètes' });
+    }
+    
+    console.log('Payload reçu sur /transmit:', {
+      email: payload.profile.email,
+      answersCount: payload.answers.length,
+      timestamp: payload.timestamp
+    });
+    
+    // Adapter le payload au format attendu
+    const adaptedPayload = {
+      identity: {
+        firstName: payload.profile.prenom,
+        lastName: payload.profile.nom,
+        email: payload.profile.email,
+        objective: payload.objectif
+      },
+      answers: payload.answers,
+      meta: {
+        dateScan: payload.timestamp,
+        appVersion: payload.appVersion
+      }
+    };
+    
+    // Réutiliser la logique existante
+    const scores = computeScores(adaptedPayload.answers);
+    const neurotype = determineNeurotype(scores);
+    const scoreGlobal = Math.round(
+      Object.values(scores).reduce((acc, bloc) => acc + bloc.percentage, 0) / 5
+    );
+
+    // Construire le prompt pour Gemini
+    const dateScan = new Date().toLocaleDateString('fr-FR');
+    const nomClient = `${adaptedPayload.identity.firstName} ${adaptedPayload.identity.lastName}`;
+    const discipline = adaptedPayload.identity.objective || "Performance générale";
+    
+    const { identity, answers } = adaptedPayload;
+    
+    let prompt = ANALYST_PROMPT
+      .replace(/\{\{dateScan\}\}/g, dateScan)
+      .replace(/\{\{nomClient\}\}/g, nomClient)
+      .replace(/\{\{discipline\}\}/g, discipline)
+      .replace(/\{\{nomNeurotype\}\}/g, neurotype.nom)
+      .replace(/\{\{caracteristiqueNeurotype\}\}/g, neurotype.caracteristique)
+      .replace(/\{\{axeDeveloppementNeurotype\}\}/g, neurotype.axeDeveloppement)
+      .replace(/\{\{scoreBlocA\}\}/g, scores.blocA.total)
+      .replace(/\{\{scoreBlocB\}\}/g, scores.blocB.total)
+      .replace(/\{\{scoreBlocC\}\}/g, scores.blocC.total)
+      .replace(/\{\{scoreBlocD\}\}/g, scores.blocD.total)
+      .replace(/\{\{scoreBlocE\}\}/g, scores.blocE.total)
+      .replace(/\{\{pourcentageBlocA\}\}/g, scores.blocA.percentage)
+      .replace(/\{\{pourcentageBlocB\}\}/g, scores.blocB.percentage)
+      .replace(/\{\{pourcentageBlocC\}\}/g, scores.blocC.percentage)
+      .replace(/\{\{pourcentageBlocD\}\}/g, scores.blocD.percentage)
+      .replace(/\{\{pourcentageBlocE\}\}/g, scores.blocE.percentage)
+      .replace(/\{\{interpretationA\}\}/g, getInterpretation('A', scores.blocA.percentage))
+      .replace(/\{\{alerteA\}\}/g, getAlerte('A', scores.blocA.percentage))
+      .replace(/\{\{interpretationB\}\}/g, getInterpretation('B', scores.blocB.percentage))
+      .replace(/\{\{alerteB\}\}/g, getAlerte('B', scores.blocB.percentage))
+      .replace(/\{\{interpretationC\}\}/g, getInterpretation('C', scores.blocC.percentage))
+      .replace(/\{\{alerteC\}\}/g, getAlerte('C', scores.blocC.percentage))
+      .replace(/\{\{interpretationD\}\}/g, getInterpretation('D', scores.blocD.percentage))
+      .replace(/\{\{alerteD\}\}/g, getAlerte('D', scores.blocD.percentage))
+      .replace(/\{\{interpretationE\}\}/g, getInterpretation('E', scores.blocE.percentage))
+      .replace(/\{\{alerteE\}\}/g, getAlerte('E', scores.blocE.percentage))
+      .replace(/\{\{pourcentageDopamine\}\}/g, calculateSubScore('dopamine', answers))
+      .replace(/\{\{pourcentageSerotonine\}\}/g, calculateSubScore('serotonine', answers))
+      .replace(/\{\{pourcentageAcetylcholine\}\}/g, calculateSubScore('acetylcholine', answers))
+      .replace(/\{\{pourcentageGABA\}\}/g, calculateSubScore('gaba', answers))
+      .replace(/\{\{pourcentageGlutamate\}\}/g, calculateSubScore('glutamate', answers))
+      .replace(/\{\{pourcentageNoradrenaline\}\}/g, calculateSubScore('noradrenaline', answers));
+
+    // Appel Gemini
+    console.log("Génération du rapport avec Gemini...");
+    const result = await model.generateContent([{ text: prompt }]);
+    const aiText = result?.response?.text?.() || "Rapport en cours de génération...";
+
+    // E-mails
+    const from = process.env.SENDGRID_FROM;
+    const HQ = process.env.EMAIL_QG;
+
+    console.log("Envoi des emails...");
+
+    // Email Client
+    await sgMail.send({
+      to: identity.email,
+      from: {
+        email: from,
+        name: "SUPRA-CODE NEURO-PERFORMANCE™"
+      },
+      subject: "🧠 Votre Code Neurochimique est prêt - Accès Niveau 1",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #000; color: #fff;">
+          <div style="background: linear-gradient(135deg, #dc2626, #991b1b); padding: 30px; text-align: center;">
+            <h1 style="margin: 0; font-size: 24px; font-weight: bold;">NIVEAU 1 ATTEINT</h1>
+            <p style="margin: 10px 0 0 0; opacity: 0.9;">PRISE DE CONSCIENCE</p>
+          </div>
+          
+          <div style="padding: 30px;">
+            <h2 style="color: #f5efe6; margin-bottom: 20px;">Bonjour ${identity.firstName},</h2>
+            
+            <p style="line-height: 1.6; margin-bottom: 20px;">
+              Votre <strong>Code Neurochimique</strong> a été scanné avec succès. 
+              Votre transformation commence maintenant.
+            </p>
+            
+            <div style="background: #1f1f1f; padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #dc2626;">
+              <h3 style="color: #dc2626; margin: 0 0 10px 0;">Votre Score Global</h3>
+              <div style="font-size: 32px; font-weight: bold; color: #f5efe6;">${scoreGlobal}%</div>
+              <p style="margin: 5px 0 0 0; color: #999;">Performance Neurochimique</p>
+            </div>
+            
+            <div style="background: #1f1f1f; padding: 20px; border-radius: 10px; margin: 20px 0;">
+              <h3 style="color: #dc2626; margin: 0 0 10px 0;">Votre Neurotype</h3>
+              <div style="font-size: 18px; font-weight: bold; color: #f5efe6;">${neurotype.nom}</div>
+              <p style="margin: 5px 0 0 0; color: #999;">${neurotype.caracteristique}</p>
+            </div>
+            
+            <div style="background: #1f1f1f; padding: 15px; border-radius: 8px; margin: 20px 0;">
+              <h4 style="color: #dc2626; margin: 0 0 10px 0;">Votre Rapport Complet</h4>
+              <div style="max-height: 300px; overflow-y: auto; font-size: 14px; line-height: 1.5; color: #ccc;">
+                <pre style="white-space: pre-wrap; margin: 0;">${aiText}</pre>
+              </div>
+            </div>
+            
+            <p style="line-height: 1.6; color: #ccc;">
+              Ce rapport contient votre analyse neurochimique complète, 
+              votre neurotype dominant, et votre plan d'action personnalisé.
+            </p>
+          </div>
+          
+          <div style="background: #1f1f1f; padding: 20px; text-align: center; font-size: 12px; color: #666;">
+            <p style="margin: 0;">SUPRA-CODE NEURO-PERFORMANCE™</p>
+            <p style="margin: 5px 0 0 0;">Votre performance ne sera plus jamais un hasard.</p>
+          </div>
+        </div>
+      `
+    });
+
+    // Email QG
+    await sgMail.send({
+      to: HQ,
+      from: {
+        email: from,
+        name: "SUPRA-CODE NEURO-PERFORMANCE™"
+      },
+      subject: "Nouveau scan Supra-Code — Transmission QG",
+      text: `
+Client: ${identity.firstName} ${identity.lastName} <${identity.email}>
+Discipline: ${identity.objective || "N/A"}
+Date: ${dateScan}
+Score Global: ${scoreGlobal}%
+Neurotype: ${neurotype.nom}
+
+Scores détaillés:
+- Pilier A (Neurochimie Rapide): ${scores.blocA.percentage}%
+- Pilier B (Neuromodulation Lente): ${scores.blocB.percentage}%
+- Pilier C (Neurohormonal): ${scores.blocC.percentage}%
+- Pilier D (Support Métabolique): ${scores.blocD.percentage}%
+- Pilier E (Ondes Cérébrales): ${scores.blocE.percentage}%
+
+Réponses (28): ${answers.join(", ")}
+
+Rapport complet:
+${aiText}
+      `
+    });
+
+    console.log("Emails envoyés avec succès via /transmit");
+
+    return res.json({ 
+      ok: true, 
+      message: 'Transmission réussie',
+      deliveredAt: new Date().toISOString(), 
+      url: APP_PUBLIC_URL,
+      scoreGlobal,
+      neurotype: neurotype.nom
+    });
+
+  } catch (error) {
+    console.error('Erreur lors de la transmission via /transmit:', error);
+    res.status(500).json({ 
+      error: 'Erreur interne du serveur',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // Servir le build Vite pour toutes les autres routes
 app.get("*", (_req, res) => res.sendFile(path.join(__dirname, "../dist", "index.html")));
 
