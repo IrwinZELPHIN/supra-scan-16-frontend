@@ -26,6 +26,153 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: "2mb" }));
 
+// Valeur attendue pour answers côté serveur (garde-la synchronisée avec le front)
+const EXPECTED_ANSWERS = Number(process.env.EXPECTED_ANSWERS || 28);
+
+// Handler unifié pour les routes de transmission
+async function handleTransmit(req, res) {
+  try {
+    console.log('Payload reçu sur /transmit :', JSON.stringify(req.body, null, 2));
+
+    const body = req.body || {};
+    const profile = body.profile;
+    const answers = body.answers;
+
+    const hasContact = !!(profile && (profile.email || profile.phone));
+    const hasAnswers = Array.isArray(answers) && answers.length >= EXPECTED_ANSWERS;
+
+    if (!hasContact || !hasAnswers) {
+      const reasons = {
+        contact: hasContact ? null : 'email ou téléphone manquant',
+        answers: hasAnswers ? null : `answers.length=${Array.isArray(answers) ? answers.length : 'NA'}/${EXPECTED_ANSWERS}`,
+      };
+      console.error('Validation KO :', reasons);
+      return res.status(400).json({ error: 'Données incomplètes', reasons });
+    }
+
+    // Adapter le payload au format attendu par la logique existante
+    const adaptedPayload = {
+      identity: {
+        firstName: profile.prenom || profile.firstName,
+        lastName: profile.nom || profile.lastName,
+        email: profile.email,
+        objective: body.objectif || 'Performance générale'
+      },
+      answers: answers,
+      meta: {
+        dateScan: body.timestamp || new Date().toISOString(),
+        appVersion: body.appVersion || 'v2'
+      }
+    };
+
+    // Réutiliser la logique existante de calcul
+    const scores = computeScores(adaptedPayload.answers);
+    const neurotype = determineNeurotype(scores);
+    const scoreGlobal = Math.round(
+      Object.values(scores).reduce((acc, bloc) => acc + bloc.percentage, 0) / 5
+    );
+
+    // Construire le prompt pour Gemini
+    const dateScan = new Date().toLocaleDateString('fr-FR');
+    const nomClient = `${adaptedPayload.identity.firstName} ${adaptedPayload.identity.lastName}`;
+    const discipline = adaptedPayload.identity.objective;
+    
+    let prompt = ANALYST_PROMPT
+      .replace(/\{\{dateScan\}\}/g, dateScan)
+      .replace(/\{\{nomClient\}\}/g, nomClient)
+      .replace(/\{\{discipline\}\}/g, discipline)
+      .replace(/\{\{nomNeurotype\}\}/g, neurotype.nom)
+      .replace(/\{\{caracteristiqueNeurotype\}\}/g, neurotype.caracteristique)
+      .replace(/\{\{axeDeveloppementNeurotype\}\}/g, neurotype.axeDeveloppement)
+      .replace(/\{\{scoreBlocA\}\}/g, scores.blocA.total)
+      .replace(/\{\{scoreBlocB\}\}/g, scores.blocB.total)
+      .replace(/\{\{scoreBlocC\}\}/g, scores.blocC.total)
+      .replace(/\{\{scoreBlocD\}\}/g, scores.blocD.total)
+      .replace(/\{\{scoreBlocE\}\}/g, scores.blocE.total)
+      .replace(/\{\{pourcentageBlocA\}\}/g, scores.blocA.percentage)
+      .replace(/\{\{pourcentageBlocB\}\}/g, scores.blocB.percentage)
+      .replace(/\{\{pourcentageBlocC\}\}/g, scores.blocC.percentage)
+      .replace(/\{\{pourcentageBlocD\}\}/g, scores.blocD.percentage)
+      .replace(/\{\{pourcentageBlocE\}\}/g, scores.blocE.percentage)
+      .replace(/\{\{interpretationA\}\}/g, getInterpretation('A', scores.blocA.percentage))
+      .replace(/\{\{interpretationB\}\}/g, getInterpretation('B', scores.blocB.percentage))
+      .replace(/\{\{interpretationC\}\}/g, getInterpretation('C', scores.blocC.percentage))
+      .replace(/\{\{interpretationD\}\}/g, getInterpretation('D', scores.blocD.percentage))
+      .replace(/\{\{interpretationE\}\}/g, getInterpretation('E', scores.blocE.percentage));
+
+    // Générer le rapport IA
+    const result = await model.generateContent(prompt);
+    const aiText = result.response.text();
+
+    // Envoyer les emails
+    await sgMail.send({
+      to: adaptedPayload.identity.email,
+      from: process.env.SENDGRID_FROM,
+      subject: `SUPRA-CODE NEURO-PERFORMANCE™ - Rapport d'Analyse - ${nomClient}`,
+      text: `
+Bonjour ${adaptedPayload.identity.firstName},
+
+Votre analyse SUPRA-CODE est terminée.
+
+Score Global: ${scoreGlobal}%
+Neurotype: ${neurotype.nom}
+
+Scores détaillés:
+- Pilier A (Neurochimie Rapide): ${scores.blocA.percentage}%
+- Pilier B (Neuromodulation Lente): ${scores.blocB.percentage}%
+- Pilier C (Neurohormonal): ${scores.blocC.percentage}%
+- Pilier D (Support Métabolique): ${scores.blocD.percentage}%
+- Pilier E (Ondes Cérébrales): ${scores.blocE.percentage}%
+
+Rapport complet:
+${aiText}
+      `
+    });
+
+    await sgMail.send({
+      to: process.env.EMAIL_QG,
+      from: process.env.SENDGRID_FROM,
+      subject: `[QG] Nouvelle analyse SUPRA-CODE - ${nomClient}`,
+      text: `
+Nouvelle analyse terminée:
+
+Client: ${nomClient} (${adaptedPayload.identity.email})
+Date: ${dateScan}
+Objectif: ${discipline}
+Score Global: ${scoreGlobal}%
+Neurotype: ${neurotype.nom}
+
+Scores détaillés:
+- Pilier A (Neurochimie Rapide): ${scores.blocA.percentage}%
+- Pilier B (Neuromodulation Lente): ${scores.blocB.percentage}%
+- Pilier C (Neurohormonal): ${scores.blocC.percentage}%
+- Pilier D (Support Métabolique): ${scores.blocD.percentage}%
+- Pilier E (Ondes Cérébrales): ${scores.blocE.percentage}%
+
+Réponses (${answers.length}): ${answers.join(", ")}
+
+Rapport complet:
+${aiText}
+      `
+    });
+
+    console.log("Emails envoyés avec succès");
+
+    return res.status(200).json({ 
+      ok: true, 
+      message: 'Transmission réussie',
+      deliveredAt: new Date().toISOString(), 
+      url: APP_PUBLIC_URL,
+      scoreGlobal,
+      neurotype: neurotype.nom
+    });
+
+  } catch (err) {
+    console.error('API transmit error:', err);
+    return res.status(500).json({ error: 'internal_error', details: err.message });
+  }
+}
+
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
 // Servir les fichiers statiques du build Vite
@@ -268,7 +415,7 @@ app.post("/api/transmit", async (req, res) => {
     const payload = req.body;
     
     // Validation basique
-    if (!payload?.profile?.email || !Array.isArray(payload?.answers) || payload.answers.length < 28) {
+    if (!payload?.profile?.email || !Array.isArray(payload?.answers) || payload.answers.length < 29) {
       return res.status(400).json({ error: 'Données incomplètes' });
     }
     
@@ -636,7 +783,7 @@ ${aiText}
 });
 
 // Route /transmit (sans préfixe /api) pour compatibilité frontend
-app.post("/api/transmit", async (req, res) => {
+app.post("/transmit", async (req, res) => {
   try {
     const payload = req.body;
     
@@ -830,6 +977,10 @@ ${aiText}
     });
   }
 });
+
+// Expose clairement les 2 routes sur le même handler
+app.post('/api/transmit', handleTransmit);
+app.post('/transmit', handleTransmit);
 
 // Servir le build Vite pour toutes les autres routes
 app.get("*", (_req, res) => res.sendFile(path.join(__dirname, "../dist", "index.html")));

@@ -36,18 +36,33 @@ export default function Transmission() {
     // Utiliser l'URL du backend depuis les variables d'environnement
     const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://supra-scan-16-backend.onrender.com';
     
+    // Créer le payload final
+    const payload = { ...raw, profile, answers };
+    
+    // Log clair du payload avant l'envoi
+    console.log('Payload envoyé à /api/transmit :', payload);
+    
     fetch(`${apiUrl}/api/transmit`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...raw, profile, answers }), // on renvoie le profil/answers normalisés
+      body: JSON.stringify(payload),
     })
     .then(async (r) => {
-      if (!r.ok) throw new Error(await r.text());
+      if (!r.ok) {
+        let detail = '';
+        try { 
+          detail = await r.text(); 
+        } catch {}
+        throw new Error(`HTTP ${r.status} — ${detail}`);
+      }
+      return r.text();
+    })
+    .then(() => {
       setStatus('ok');
       // resetAll(); // Optionnel après succès
     })
     .catch(e => {
-      console.error('Transmission error:', e);
+      console.error('Transmission error ->', e);
       setErr(e.message || 'Erreur réseau / serveur.');
       setStatus('error');
     });
