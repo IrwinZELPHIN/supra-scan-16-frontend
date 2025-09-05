@@ -268,7 +268,7 @@ app.post("/api/transmit", async (req, res) => {
     const payload = req.body;
     
     // Validation basique
-    if (!payload?.profile?.email || !Array.isArray(payload?.answers) || payload.answers.length < 29) {
+    if (!payload?.profile?.email || !Array.isArray(payload?.answers) || payload.answers.length < 28) {
       return res.status(400).json({ error: 'Données incomplètes' });
     }
     
