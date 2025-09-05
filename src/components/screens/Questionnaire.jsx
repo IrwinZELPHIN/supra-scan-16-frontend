@@ -332,9 +332,16 @@ const Questionnaire = () => {
         {/* Barre de progression */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-gray-300">
-              Question {currentIndex + 1} / {safeQuestions.length}
-            </span>
+            {/* Affichage conditionnel du compteur : masqué pour Q0, ajusté pour Q1-Q28 */}
+            {currentQuestion && currentQuestion.id !== 'Q0' ? (
+              <span className="text-sm font-medium text-gray-300">
+                Question {currentIndex} / 28
+              </span>
+            ) : (
+              <span className="text-sm font-medium text-gray-300">
+                Prologue
+              </span>
+            )}
             <span className="text-sm font-medium text-gray-300">
               {progress}%
             </span>
