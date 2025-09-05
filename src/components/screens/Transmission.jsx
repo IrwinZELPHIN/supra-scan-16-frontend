@@ -36,7 +36,7 @@ export default function Transmission() {
     // Utiliser l'URL du backend depuis les variables d'environnement
     const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://supra-scan-16-backend.onrender.com';
     
-    fetch(`${apiUrl}/transmit`, {
+    fetch(`${apiUrl}/api/transmit`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...raw, profile, answers }), // on renvoie le profil/answers normalisés
