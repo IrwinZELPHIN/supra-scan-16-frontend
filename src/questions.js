@@ -237,9 +237,11 @@ export const questions = [
       { label: 'D', texte: 'Jamais' }
     ]
   },
+
+  // Q19-Q23 - BLOC D (Support Métabolique)
   {
     id: 'Q19',
-    bloc: 'BLOC C',
+    bloc: 'BLOC D',
     titre: 'Support Métabolique (Acides Aminés, Ions, Cofacteurs)',
     texte: 'Avez-vous des crampes musculaires, paupières qui sautent ou spasmes ?',
     options: [
@@ -249,8 +251,6 @@ export const questions = [
       { label: 'D', texte: 'Jamais' }
     ]
   },
-
-  // Q20-Q24 - BLOC D (Support Métabolique)
   {
     id: 'Q20',
     bloc: 'BLOC D',
@@ -299,9 +299,11 @@ export const questions = [
       { label: 'D', texte: 'Jamais' }
     ]
   },
+
+  // Q24-Q28 - BLOC E (Ondes Cérébrales)
   {
     id: 'Q24',
-    bloc: 'BLOC D',
+    bloc: 'BLOC E',
     titre: 'Ondes Cérébrales',
     texte: 'Vous endormez-vous facilement et dormez-vous profondément ? (Delta)',
     options: [
@@ -311,8 +313,6 @@ export const questions = [
       { label: 'D', texte: 'Très facilement' }
     ]
   },
-
-  // Q25-Q28 - BLOC E (Ondes Cérébrales)
   {
     id: 'Q25',
     bloc: 'BLOC E',
