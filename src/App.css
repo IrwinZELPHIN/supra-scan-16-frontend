@@ -1,0 +1,205 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  --radius: 0.625rem;
+  /* Supra Scan Color Palette */
+  --supra-black: #000000;
+  --supra-white: #FFFFFF;
+  --supra-beige: #F5EFE6;
+  --supra-red: #FF4136;
+  
+  --background: var(--supra-black);
+  --foreground: var(--supra-white);
+  --card: var(--supra-black);
+  --card-foreground: var(--supra-white);
+  --popover: var(--supra-black);
+  --popover-foreground: var(--supra-white);
+  --primary: var(--supra-red);
+  --primary-foreground: var(--supra-white);
+  --secondary: var(--supra-beige);
+  --secondary-foreground: var(--supra-black);
+  --muted: #1a1a1a;
+  --muted-foreground: var(--supra-beige);
+  --accent: var(--supra-red);
+  --accent-foreground: var(--supra-white);
+  --destructive: var(--supra-red);
+  --border: #333333;
+  --input: #1a1a1a;
+  --ring: var(--supra-red);
+  --chart-1: var(--supra-red);
+  --chart-2: var(--supra-beige);
+  --chart-3: var(--supra-white);
+  --chart-4: #666666;
+  --chart-5: #999999;
+  --sidebar: var(--supra-black);
+  --sidebar-foreground: var(--supra-white);
+  --sidebar-primary: var(--supra-red);
+  --sidebar-primary-foreground: var(--supra-white);
+  --sidebar-accent: var(--supra-beige);
+  --sidebar-accent-foreground: var(--supra-black);
+  --sidebar-border: #333333;
+  --sidebar-ring: var(--supra-red);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+}
+
+/* Custom Supra Scan Styles */
+.supra-container {
+  min-height: 100vh;
+  background: var(--supra-black);
+  color: var(--supra-white);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.supra-title {
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--supra-white);
+  text-align: center;
+  margin-bottom: 2rem;
+  letter-spacing: -0.02em;
+}
+
+.supra-subtitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--supra-beige);
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.supra-text {
+  font-size: 1.125rem;
+  line-height: 1.7;
+  color: var(--supra-beige);
+  text-align: center;
+  max-width: 800px;
+  margin-bottom: 3rem;
+}
+
+.supra-button {
+  background: var(--supra-red);
+  color: var(--supra-white);
+  border: none;
+  padding: 1rem 2.5rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+}
+
+.supra-button:hover {
+  background: #e63429;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(255, 65, 54, 0.3);
+}
+
+.supra-form {
+  background: #111111;
+  border: 1px solid #333333;
+  border-radius: 1rem;
+  padding: 3rem;
+  width: 100%;
+  max-width: 600px;
+  margin: 2rem 0;
+}
+
+.supra-input {
+  background: var(--input);
+  border: 1px solid #333333;
+  color: var(--supra-white);
+  padding: 0.875rem 1rem;
+  border-radius: 0.5rem;
+  width: 100%;
+  font-size: 1rem;
+  margin-bottom: 1.5rem;
+  transition: border-color 0.3s ease;
+}
+
+.supra-input:focus {
+  outline: none;
+  border-color: var(--supra-red);
+  box-shadow: 0 0 0 3px rgba(255, 65, 54, 0.1);
+}
+
+.supra-input::placeholder {
+  color: #666666;
+}
+
+.supra-label {
+  color: var(--supra-beige);
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.fade-in {
+  animation: fadeIn 0.8s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
