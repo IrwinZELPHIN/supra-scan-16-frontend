@@ -34,7 +34,7 @@ export default function Transmission() {
     setStatus('sending');
     
     // Utiliser l'URL du backend depuis les variables d'environnement
-    const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:10000';
+    const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://supra-scan-16-backend.onrender.com';
     
     fetch(`${apiUrl}/transmit`, {
       method: 'POST',
