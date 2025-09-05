@@ -23,6 +23,7 @@ export default function Transmission() {
 
     // --- ENVOI AU BACKEND / EMAIL / IA ---
     setStatus('sending');
+    console.log("DONNÉES ENVOYÉES (New) :", payload);
     fetch('/api/transmit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
