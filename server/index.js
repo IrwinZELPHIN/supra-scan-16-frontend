@@ -786,7 +786,10 @@ ${aiText}
 app.post("/transmit", async (req, res) => {
   try {
     const payload = req.body;
-    
+    console.log("[RX DEBUG] payload complet =", JSON.stringify(payload, null, 2));
+console.log("[RX DEBUG] profile =", payload?.profile);
+console.log("[RX DEBUG] answers length =", Array.isArray(payload?.answers) ? payload.answers.length : "not an array");
+
     // Validation basique
     if (!payload?.profile?.email || !Array.isArray(payload?.answers) || payload.answers.length < 28) {
       return res.status(400).json({ error: 'Données incomplètes' });
