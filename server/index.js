@@ -40,11 +40,9 @@ async function handleTransmit(req, res) {
     console.log("[RX DEBUG] contact =", profile?.email || profile?.phone || "(none)");
     console.log("[RX DEBUG] answers.length =", Array.isArray(answers) ? answers.length : "not-array");
 
-    console.log('Payload reçu sur /transmit :', JSON.stringify(req.body, null, 2));
+    console.log('Payload reçu sur /transmit :', JSON.stringify(payload, null, 2));
 
-    const body = req.body || {};
-    const profile = body.profile;
-    const answers = body.answers;
+    
 
     const hasContact = !!(profile && (profile.email || profile.phone));
     const hasAnswers = Array.isArray(answers) && answers.length >= EXPECTED_ANSWERS;
