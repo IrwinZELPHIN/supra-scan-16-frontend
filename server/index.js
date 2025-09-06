@@ -44,16 +44,26 @@ async function handleTransmit(req, res) {
 
     
 
-    const hasContact = !!(profile && (profile.email || profile.phone));
-    const hasAnswers = Array.isArray(answers) && answers.length >= EXPECTED_ANSWERS;
+    // ✅ Validation détaillée (explique la raison précise)
+const hasContact = !!(profile?.email || profile?.phone);
+const isArray = Array.isArray(answers);
+const count = isArray ? answers.length : 'not-array';
+const expected = EXPECTED_ANSWERS;
 
-    if (!hasContact || !hasAnswers) {
-      const reasons = {
-        contact: hasContact ? null : 'email ou téléphone manquant',
-        answers: hasAnswers ? null : `answers.length=${Array.isArray(answers) ? answers.length : 'NA'}/${EXPECTED_ANSWERS}`,
-      };
-      console.error('Validation KO :', reasons);
-      return res.status(400).json({ error: 'Données incomplètes', reasons });
+const reasons = [];
+if (!hasContact) reasons.push("contact manquant (email ou téléphone)");
+if (!isArray) reasons.push("answers n'est pas un tableau");
+if (isArray && count < expected) reasons.push(`answers trop court: ${count}/${expected}`);
+
+if (reasons.length) {
+  console.log("[RX DEBUG] Validation KO:", { hasContact, isArray, count, expected, reasons });
+  return res.status(400).json({
+    error: "Données incomplètes",
+    reasons,
+    debug: { hasContact, count, expected }
+  });
+}
+
     }
 
     // Adapter le payload au format attendu par la logique existante
