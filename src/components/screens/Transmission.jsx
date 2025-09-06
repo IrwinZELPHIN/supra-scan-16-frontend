@@ -41,7 +41,8 @@ export default function Transmission() {
     
     // Log clair du payload avant l'envoi
     console.log('Payload envoyé à /api/transmit :', payload);
-    
+    console.log("DONNÉES ENVOYÉES :", { profile, answers });
+
     fetch(`${apiUrl}/api/transmit`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
