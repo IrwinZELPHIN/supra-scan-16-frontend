@@ -32,6 +32,14 @@ const EXPECTED_ANSWERS = Number(process.env.EXPECTED_ANSWERS || 28);
 // Handler unifié pour les routes de transmission
 async function handleTransmit(req, res) {
   try {
+        const payload = req.body || {};
+    const profile = payload.profile;
+    const answers = payload.answers;
+
+    console.log("[RX DEBUG] /api/transmit payload =", JSON.stringify(payload, null, 2));
+    console.log("[RX DEBUG] contact =", profile?.email || profile?.phone || "(none)");
+    console.log("[RX DEBUG] answers.length =", Array.isArray(answers) ? answers.length : "not-array");
+
     console.log('Payload reçu sur /transmit :', JSON.stringify(req.body, null, 2));
 
     const body = req.body || {};
